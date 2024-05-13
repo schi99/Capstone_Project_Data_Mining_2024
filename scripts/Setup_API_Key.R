@@ -12,3 +12,6 @@
 # Use the follwing code to accese the Key 
 
 api_key <- Sys.getenv(x= "Key")
+
+# Before you push check the gitignore-file (if the .Renviron-file is there you
+# can push and commit)
