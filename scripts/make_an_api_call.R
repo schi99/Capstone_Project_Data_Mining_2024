@@ -1,7 +1,11 @@
 # Call_the_API -----------------------------------------------------------
 
+# Note: Before runing this code make sure to haven an .Renviron-file with your
+# API-Key and your E-Mail Address.
 
-#Build a Function
+
+
+# Define the GET-Function -------------------------------------------------
 
 get_destination_data <- function(api_key, 
                                  my_email,
@@ -46,8 +50,11 @@ get_destination_data <- function(api_key,
   }
 }
 
-# Example usage:
-# Fetch destination data with provided API key, in English with 30 results per page, and translate facets
+
+
+# Fetch destination data  -------------------------------------------------
+
+
 
 api_key <- Sys.getenv(x="Key")
 my_email <- Sys.getenv(x="Mail")
@@ -58,7 +65,7 @@ destination_data <- get_destination_data(api_key,
                                          my_email,
                                          language = "en",
                                          page = 0,
-                                         hitsPerPage = 30,
+                                         hitsPerPage = 100,
                                          translateFacets = TRUE)
 print(destination_data)
 
