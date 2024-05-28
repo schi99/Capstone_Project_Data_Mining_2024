@@ -51,3 +51,4 @@ rsconnect/
 # Data
 
 destination_data.rds
+attraction_data.rds
