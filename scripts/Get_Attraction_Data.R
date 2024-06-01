@@ -1,8 +1,7 @@
-# Call_the_API -----------------------------------------------------------
 
 library(httr2)
 library(httr)
-library(here)
+
 # Note: Before runing this code make sure to haven an .Renviron-file with your
 # API-Key and your E-Mail Address.
 
@@ -10,17 +9,17 @@ library(here)
 
 # Define the GET-Function -------------------------------------------------
 
-get_destination_data <- function(api_key, 
+get_attraction_data <- function(api_key, 
                                  my_email,
                                  language = "en",
-                                 page = page,
+                                 page = 0,
                                  hitsPerPage = 30,
                                  translateFacets = TRUE,
                                  expandData = TRUE)
 {
   # Construct the URL based on the provided parameters
   
-  url <- paste0("https://opendata.myswitzerland.io/v1/destinations/?lang=", language, "&page=", page, "&hitsPerPage=", hitsPerPage)
+  url <- paste0("https://opendata.myswitzerland.io/v1/attractions?lang=", language, "&page=", page, "&hitsPerPage=", hitsPerPage)
   if (translateFacets) {
     url <- paste0(url, "&facets.translate=true")
   }
@@ -37,7 +36,7 @@ get_destination_data <- function(api_key,
       `From` = my_email,
       `User-Agent` = R.Version()$version.string
     )
-  
+    
   )
   
   # Check if the API call was successful
@@ -56,7 +55,7 @@ get_destination_data <- function(api_key,
 
 
 
-# Fetch destination data  -------------------------------------------------
+# Fetch attraction data  -------------------------------------------------
 
 
 
@@ -66,13 +65,13 @@ my_email <- Sys.getenv(x="Mail")
 
 # Test
 
-destination_data <- get_destination_data(api_key, 
+attraction_data <- get_attraction_data(api_key, 
                                          my_email,
                                          language = "en",
                                          page = 0,
                                          hitsPerPage = 20,
                                          translateFacets = TRUE)
-print(destination_data)
+print(attraction_data)
 
 # Perparation
 
@@ -86,19 +85,19 @@ repeat {
   
   Sys.sleep(rnorm(1 ,mean = 1, sd = 0.2))
   
-  destination_data <- get_destination_data(api_key, 
-                                   my_email,
-                                   language = "en",
-                                   page = as.numeric(page),
-                                   hitsPerPage = 20,
-                                   translateFacets = TRUE)
+  attraction_data <- get_attraction_data(api_key, 
+                                           my_email,
+                                           language = "en",
+                                           page = page,
+                                           hitsPerPage = 20,
+                                           translateFacets = TRUE)
   
-  if (page == destination_data$meta$page$totalPages) {
+  if (page == attraction_data$meta$page$totalPages) {
     print("done")
     break
   }
   
-  all_data <- append(all_data, list(destination_data))
+  all_data <- append(all_data, list(attraction_data))
   
   
   page <- page + 1
@@ -106,4 +105,6 @@ repeat {
   print(page)
 }
 
-saveRDS(object = all_data, file = here("data/destination_data.rds"))
+
+saveRDS(object = all_data, file = here("data/attraction.rds"))
+
