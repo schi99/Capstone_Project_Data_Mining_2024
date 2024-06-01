@@ -9,252 +9,48 @@ library(geosphere)
 library(magrittr)
 
 
-# Load Data
+destination_df <- as.data.frame(readRDS(here::here("data", "destination_df.rds")))
+attraction_df <- as.data.frame(readRDS(here::here("data", "attractions_df.rds")))
+clean_destination_df <- as.data.frame(readRDS(here::here("data", "clean_destination_df.rds")))
+gemeinde_loc <- as.data.frame(readRDS(here::here("data", "gemeinde_loc.rds")))
 
+# User_interface ------------------------------------------------------------------
 
-attractions <- readRDS("attraction_data.rds")
-offers <- readRDS("offers_data.rds")
-destinations <- readRDS("destination_data.rds")
-gemeinde_df <- readRDS("gemeinde.rds")
-
-
-# Attractions_df --------------------------------------------------
-
-
-attraction_df <- data.frame(
-  name = character(),
-  abstract = character(),
-  latitude = numeric(),
-  longitude = numeric(),
-  url = character(),
-  stringsAsFactors = FALSE
-)
-
-
-j <- 1
-i <- 1
-
-repeat {
-  # Check if we are within bounds of the list
-  if (j == (length(attractions)-1)) {
-    
-    # Dirty_Fix_Because_no_more_Api_calls -------------------------------------
-    
-    break
-  }
-  
-  
-  
-  if (i == length(attractions[[j]]$data)) {
-    j <- j + 1
-    i <- 1
-  }
-  
-  
-  
-  # Extract values, ensuring they exist
-  current_attraction <- attractions[[j]]$data[[i]]
-  
-  if (!is.null(current_attraction$name) && !is.null(current_attraction$geo$latitude) &&
-      !is.null(current_attraction$geo$longitude)) {
-    
-    name <- current_attraction$name
-    abstract <- ifelse(is.null(current_attraction$abstract), "", current_attraction$abstract)
-    latitude <- current_attraction$geo$latitude
-    longitude <- current_attraction$geo$longitude
-    url <- ifelse(is.null(current_attraction$url), "", current_attraction$url)  # Assuming 'url' field exists
-    
-    # Create a single-row data frame
-    row_df <- data.frame(
-      name = name, 
-      abstract = abstract, 
-      latitude = latitude, 
-      longitude = longitude, 
-      url = url, 
-      stringsAsFactors = FALSE
-    )
-    
-    # Append the row to the main data frame
-    attraction_df <- rbind(attraction_df, row_df)
-  } else {
-    # Print error message for debugging
-    print(paste("Missing data for destination at index", i))
-  }
-  
-  i <- i + 1
-  print(i)
+# Define UI for the app
+if (!exists("gemeinde_loc")) {
+  stop("The 'gemeinde_loc' dataset is not loaded.")
 }
 
-
-# Offers_df ---------------------------------------------------------------
-
-offers_df <- data.frame(
-  name = character(),
-  abstract = character(),
-  latitude = numeric(),
-  longitude = numeric(),
-  url = character(),
-  stringsAsFactors = FALSE
-)
-
-
-j <- 1
-i <- 1
-
-repeat {
-  # Check if we are within bounds of the list
-  if (j == length(offers)) {
-    break
-  }
-  
-  if (i == length(offers[[j]]$data)) {
-    j <- j + 1
-    i <- 1
-  }
-  
-  # Extract values, ensuring they exist
-  current_offer <- offers[[j]]$data[[i]]
-  
-  if (!is.null(current_offer$name) && !is.null(current_offer$geo$latitude) &&
-      !is.null(current_offer$geo$longitude)) {
-    
-    name <- current_offer$name
-    abstract <- ifelse(is.null(current_offer$abstract), "", current_offer$abstract)
-    latitude <- current_offer$geo$latitude
-    longitude <- current_offer$geo$longitude
-    url <- ifelse(is.null(current_offer$url), "", current_offer$url)  # Assuming 'url' field exists
-    
-    # Create a single-row data frame
-    row_df <- data.frame(
-      name = name, 
-      abstract = abstract, 
-      latitude = latitude, 
-      longitude = longitude, 
-      url = url, 
-      stringsAsFactors = FALSE
-    )
-    
-    # Append the row to the main data frame
-    offers_df <- rbind(offers_df, row_df)
-  } else {
-    # Print error message for debugging
-    print(paste("Missing data for destination at index", i))
-  }
-  
-  i <- i + 1
-  print(i)
+if (!"postal_code" %in% colnames(gemeinde_loc)) {
+  stop("The 'gemeinde_loc' dataset does not contain a 'postal_code' column.")
 }
 
-
-
-# Destination_df --------------------------------------------------------
-
-destinations_df <- data.frame(
-  name = character(),
-  abstract = character(),
-  latitude = numeric(),
-  longitude = numeric(),
-  url = character(),
-  stringsAsFactors = FALSE
-)
-
-# Initialize an empty data frame
-destinations_df <- data.frame(
-  name = character(),
-  abstract = character(),
-  latitude = numeric(),
-  longitude = numeric(),
-  url = character(),
-  stringsAsFactors = FALSE
-)
-
-
-j <- 1
-i <- 1
-
-repeat {
-  # Check if we are within bounds of the list
-  if (j == length(destinations)) {
-    break
-  }
-  
-  if (i == length(destinations[[j]]$data)) {
-    j <- j + 1
-    i <- 1
-  }
-  
-  # Extract values, ensuring they exist
-  current_destination <- destinations[[j]]$data[[i]]
-  
-  if (!is.null(current_destination$name) && !is.null(current_destination$geo$latitude) &&
-      !is.null(current_destination$geo$longitude)) {
-    
-    name <- current_destination$name
-    abstract <- ifelse(is.null(current_destination$abstract), "", current_destination$abstract)
-    latitude <- current_destination$geo$latitude
-    longitude <- current_destination$geo$longitude
-    url <- ifelse(is.null(current_destination$url), "", current_destination$url)  # Assuming 'url' field exists
-    
-    # Create a single-row data frame
-    row_df <- data.frame(
-      name = name, 
-      abstract = abstract, 
-      latitude = latitude, 
-      longitude = longitude, 
-      url = url, 
-      stringsAsFactors = FALSE
-    )
-    
-    # Append the row to the main data frame
-    destinations_df <- rbind(destinations_df, row_df)
-  } else {
-    # Print error message for debugging
-    print(paste("Missing data for destination at index", i))
-  }
-  
-  i <- i + 1
-  print(i)
-}
-
-
-clean_destination_df <- destinations_df %>%
-  filter(destinations_df[2] != "")
-
-
-gemeinde_df <- gemeinde_df %>%
-  mutate(name = str_remove_all(name, "[\\(\\)]"))
-
-
-
-
-gemeinde_loc <- inner_join(gemeinde_df, destinations_df, by = "name")
-gemeinde_loc_2 <- gemeinde_loc
-
-
-# APP_UI ------------------------------------------------------------------
-
+# Define UI for the app
 ui <- fluidPage(
   titlePanel("Tourism Map of Switzerland"),
   sidebarLayout(
     sidebarPanel(
-      selectInput("dataset", "Select Dataset", choices = c("Attractions", "Destinations", "Offers")),
-      selectInput("gemeinde", "Select Gemeinde", choices = gemeinde_loc$name, multiple = FALSE),
-      selectInput("postal_code", "Select Postal Code", choices = gemeinde_loc$postal_code),
+      selectInput("dataset", "Select Dataset", choices = c("Attractions", "Destinations")),
+      selectInput("gemeinde", "Select Municipality", choices = gemeinde_loc$name, multiple = FALSE),
+      selectInput("postal_code", "Select Postal Code", choices = unique(gemeinde_loc$postal_code)),
       numericInput("radius", "Select Radius (km)", value = 20, min = 1)
     ),
     mainPanel(
       leafletOutput("mymap"),
       br(),
-      h3("List of Attractions"),
-      verbatimTextOutput("attraction_list")  # Output for the list of destinations
+      h3(textOutput("list_title")),  # Dynamic title for the list of attractions
+      htmlOutput("attraction_list")  # Output for the list of destinations
     )
   )
 )
 
+
+# Server ------------------------------------------------------------------
+
+
+# Define server logic for the app
 server <- function(input, output, session) {
   observe({
-    if (!exists("gemeinde_loc")) return(NULL)  # Check if gemeinde_loc exists
-    
     selected_postal_code <- input$postal_code
     selected_gemeinde <- gemeinde_loc$name[gemeinde_loc$postal_code == selected_postal_code]
     
@@ -266,15 +62,11 @@ server <- function(input, output, session) {
   filtered_data <- reactive({
     dataset <- switch(input$dataset,
                       "Attractions" = attraction_df,
-                      "Destinations" = clean_destination_df,
-                      "Offers" = offers_df)
-    
-    if (!exists("gemeinde_loc")) return(NULL)  # Check if gemeinde_loc exists
+                      "Destinations" = clean_destination_df)
     
     selected_gemeinde <- gemeinde_loc %>%
-      dplyr::filter(name == input$gemeinde)
-    if (nrow(selected_gemeinde) == 0) {return(NULL)}
-    
+      filter(name == input$gemeinde)
+    if (nrow(selected_gemeinde) == 0) { return(NULL) }
     
     distances <- distm(
       c(selected_gemeinde$longitude, selected_gemeinde$latitude), 
@@ -282,10 +74,8 @@ server <- function(input, output, session) {
       fun = distHaversine
     )
     
-    # Convert the radius from kilometers to meters
     radius_meters <- input$radius * 1000
     
-    # Filter the dataset based on the selected radius
     dataset_within_radius <- dataset[distances <= radius_meters, ]
     
     list(dataset_within_radius = dataset_within_radius, selected_gemeinde = selected_gemeinde)
@@ -313,27 +103,36 @@ server <- function(input, output, session) {
                        color = "black", 
                        popup = ~paste("<b>", selected_gemeinde$name, "</b>"))
   })
-  output$attraction_list <- renderPrint({
+  
+  # Generate a dynamic title based on the selected dataset
+  output$list_title <- renderText({
+    switch(input$dataset,
+           "Attractions" = "List of Attractions",
+           "Destinations" = "List of Destinations")
+  })
+  
+  output$attraction_list <- renderUI({
     data <- filtered_data()
     if (is.null(data)) return(NULL)
     
     dataset <- data$dataset_within_radius
-    # Print the list of titles and URLs of attractions
-    lapply(seq_len(nrow(dataset)), function(i) {
-      cat("Title:", dataset$name[i], "\n")
-      cat("URL:", dataset$url[i], "\n\n")
+    
+    # Filter out rows with null name or url
+    dataset <- dataset %>% filter(!is.na(name) & !is.na(url) & name != "" & url != "")
+    
+    # Create a list of HTML elements for each attraction
+    attraction_list <- lapply(seq_len(nrow(dataset)), function(i) {
+      tags$div(
+        tags$h4(dataset$name[i]),
+        tags$a(href = dataset$url[i], dataset$url[i]),
+        tags$br()
+      )
     })
+    
+    # Return the list as HTML
+    do.call(tagList, attraction_list)
   })
 }
 
-
-
+# Run the Shiny app
 shinyApp(ui, server)
-
-
-
-
-
-
-
-
