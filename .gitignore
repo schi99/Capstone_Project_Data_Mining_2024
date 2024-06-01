@@ -50,5 +50,9 @@ rsconnect/
 
 # Data
 
+offers_data.rds
+gemeinde.rds
 destination_data.rds
 attraction_data.rds
+destination_df.rds
+gemeinden.html
