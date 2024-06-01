@@ -3,27 +3,165 @@ title: "Report - Capstone Project: Data Mining for Political and Social Sciences
 author: "Benjamin Schibli"
 date: "`r Sys.Date()`"
 output: html_document
+runtime: shiny
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(shiny)
+library(leaflet)
+library(dplyr)
+library(stringr)
+library(geosphere)
+library(magrittr)
 ```
 
 ## General Information
 
-This project was realized as part of the seminar: Data Mining for Political and Social Sciences using R in the spring semester 2024. The data on which this project is based are from the following pages: <br> <br>
+This project was realized as part of the seminar: Data Mining for Political and Social Sciences using R in the spring semester 2024. The datasets on which this project is based are from the following pages:
+<br> <br>
 Switzerland Tourism -www.myswitzerland.com, <br>
 SwitzerlandMobility - www.schweizmobil.ch, <br>
 Wikipedia - www.wikipedia.org. <br> <br>
+
 The artificial intelligences ChatGPT and Deepl were used during the project.  
 
 ## Overview
 
 The aim of this capstone project is to create an R Shiny app that displays the attractions, destinations and offers available via the Switzerland tourism API on a map. A detailed map with many selection options can be found under the following link: https://www.myswitzerland.com/de-ch/map/
-This map is more aesthetic than the one created in this project. However, the app, which was created as part of this project, makes it possible to search for attractions in the surrounding area using the postcode or a municipality name (radius in kilometers).  Figure 1 shows the user interface of the Shiny app. Due to the data structure of the ‘Offers’, I decided not to include them in the map. Furthermore, only destinations with an abstract were included as destinations. This was because the other destinations often did not have a working URL. It was assumed that if a destination contained an abstract, the URL should lead to a working website. 
+This map is more aesthetic than the one created in this project. However, the app, which was created as part of this project, makes it possible to search for attractions in the surrounding area using the postcode or a municipality name (radius in kilometers). The app is displayed below. Due to the data structure of the ‘Offers’, I decided not to include them in the map. Furthermore, only destinations with an abstract were included as destinations. This was because the other destinations often did not have a working URL. It was assumed that if a destination contained an abstract, the URL should lead to a working website.The app also provides a list with the titles and links of the attractions or destinations, this list is not displayed in the markdown file.
 
-```{r Figure 1}
-#Figure 1
+
+
+```{r, echo = FALSE, warning = FALSE}
+
+destination_df <- as.data.frame(readRDS(here::here("data", "destination_df.rds")))
+attraction_df <- as.data.frame(readRDS(here::here("data", "attractions_df.rds")))
+clean_destination_df <- as.data.frame(readRDS(here::here("data", "clean_destination_df.rds")))
+gemeinde_loc <- as.data.frame(readRDS(here::here("data", "gemeinde_loc.rds")))
+
+# User_interface -------------------------------------------------------------
+
+# Define UI for the app
+ui <- fluidPage(
+  titlePanel("Tourism Map of Switzerland"),
+  sidebarLayout(
+    sidebarPanel(
+      selectInput("dataset", "Select Dataset", choices = c("Attractions", "Destinations")),
+      selectInput("gemeinde", "Select Municipality", choices = gemeinde_loc$name, multiple = FALSE),
+      selectInput("postal_code", "Select Postal Code", choices = unique(gemeinde_loc$postal_code)),
+      numericInput("radius", "Select Radius (km)", value = 20, min = 1)
+    ),
+    mainPanel(
+      leafletOutput("mymap"),
+      br(),
+      h3(textOutput("list_title")),  # Dynamic title for the list of attractions
+      htmlOutput("attraction_list")  # Output for the list of destinations
+    )
+  )
+)
+
+
+# Server ------------------------------------------------------------------
+
+
+server <- function(input, output, session) {
+  observe({
+    selected_postal_code <- input$postal_code
+    selected_gemeinde <- gemeinde_loc$name[gemeinde_loc$postal_code == selected_postal_code]
+    
+    if (!is.null(selected_gemeinde) && length(selected_gemeinde) > 0) {
+      updateSelectInput(session, "gemeinde", selected = selected_gemeinde)
+    }
+  })
+  
+  observe({
+    selected_gemeinde <- input$gemeinde
+    selected_postal_code <- gemeinde_loc$postal_code[gemeinde_loc$name == selected_gemeinde]
+    
+    if (!is.null(selected_postal_code) && length(selected_postal_code) > 0) {
+      updateNumericInput(session, "postal_code", value = selected_postal_code)
+    }
+  })
+  
+  filtered_data <- reactive({
+    dataset <- switch(input$dataset,
+                      "Attractions" = attraction_df,
+                      "Destinations" = clean_destination_df)
+    
+    selected_gemeinde <- gemeinde_loc %>%
+      filter(name == input$gemeinde)
+    if (nrow(selected_gemeinde) == 0) { return(NULL) }
+    
+    distances <- distm(
+      c(selected_gemeinde$longitude, selected_gemeinde$latitude), 
+      dataset[, c("longitude", "latitude")], 
+      fun = distHaversine
+    )
+    
+    radius_meters <- input$radius * 1000
+    
+    dataset_within_radius <- dataset[distances <= radius_meters, ]
+    
+    list(dataset_within_radius = dataset_within_radius, selected_gemeinde = selected_gemeinde)
+  })
+  
+  output$mymap <- renderLeaflet({
+    data <- filtered_data()
+    if (is.null(data)) return(NULL)
+    
+    dataset <- data$dataset_within_radius
+    selected_gemeinde <- data$selected_gemeinde
+    
+    leaflet(dataset) %>%
+      addTiles() %>%
+      setView(lng = 8.2275, lat = 46.8182, zoom = 7) %>%
+      addCircleMarkers(~longitude, ~latitude, 
+                       radius = 5,
+                       popup = ~paste("<b>", name, "</b><br><a href='", url, "'>", url, "</a>", 
+                                      ifelse(abstract != "", paste("<br>", abstract), ""), sep = ""),
+                       color = "darkred",
+                       fillOpacity = 0.1) %>%
+      addCircleMarkers(lng = selected_gemeinde$longitude, 
+                       lat = selected_gemeinde$latitude, 
+                       radius = 5, 
+                       color = "black", 
+                       popup = ~paste("<b>", selected_gemeinde$name, "</b>"))
+  })
+  
+  # Generate a dynamic title based on the selected dataset
+  output$list_title <- renderText({
+    switch(input$dataset,
+           "Attractions" = "List of Attractions",
+           "Destinations" = "List of Destinations")
+  })
+  
+  output$attraction_list <- renderUI({
+    data <- filtered_data()
+    if (is.null(data)) return(NULL)
+    
+    dataset <- data$dataset_within_radius
+    
+    # Filter out rows with null name or url
+    dataset <- dataset %>% filter(!is.na(name) & !is.na(url) & name != "" & url != "")
+    
+    # Create a list of HTML elements for each attraction
+    attraction_list <- lapply(seq_len(nrow(dataset)), function(i) {
+      tags$div(
+        tags$h4(dataset$name[i]),
+        tags$a(href = dataset$url[i], dataset$url[i]),
+        tags$br()
+      )
+    })
+    
+    # Return the list as HTML
+    do.call(tagList, attraction_list)
+  })
+}
+
+# Run the Shiny app
+shinyApp(ui, server)
+
 ```
 
 
@@ -37,11 +175,14 @@ Unfortunately, I could not find a dataset that combines the municipality names a
 
 The data downloaded from the API was nested in lists. To translate these into a data frame, the length of all requests and the length of the data points contained in there were analyzed and a loop was written based on these lengths. <br><br>
 
-In a final step, the shiny app was programmed with the data frames as data. Two menus have been added to the user interface, one that switches between destinations and attractions and one that allows you to select municipalities or postcodes. Furthermore, an input field has been added in which the user can enter the distance in kilometers to the desired municipality. One problem was that the field of the municipality adapts to the field of the postal code and vice versa. This was solved with a reactive function in the server part. Furthermore, the app works when the script is executed manually. However, if you want to run the app via Run, the app does not work. The problem seems to be with the municipality dataset or the dplyr:: filter function. I already had problems with the filter function in another project. There the name of the collum was not applied correctly. So, I tried to use a different rename function. This failed. I also tried to specify the filter function with dplyr:: but this did not work either. Another attempt was to omit the filter function completely and replace it with a base-R expression. This also did not work. So, the Problem must be with the gemeinde.df or how it is used in the user interface and the server. I thought that maybe the data frame gets changed in the user interface so I tried to make a second data frame with another name but the same data and us it in the server. This did also not work. As a result, the app is currently not running when executed via Run, but otherwise it works. <br><br>
+In a final step, the shiny app was programmed with the data frames as data. Two menus have been added to the user interface, one that switches between destinations and attractions and one that allows you to select municipalities or postcodes. Furthermore, an input field has been added in which the user can enter the distance in kilometers to the desired municipality. One problem was that the field of the municipality adapts to the field of the postal code and vice versa. This was solved with a reactive function in the server part. Furthermore, the app works when the script is executed manually. However, if you want to run the app via Run, the app does not work. The problem seems to be with the municipality dataset or the dplyr:: filter function. I already had problems with the filter function in another project. There the name of the collum was not applied correctly. So, I tried to use a different rename function. This failed. I also tried to specify the filter function with dplyr:: but this did not work either. Another attempt was to omit the filter function completely and replace it with a base-R expression. This also did not work. So, the Problem must be with the gemeinde.df or how it is used in the user interface and the server. I thought that maybe the data frame gets changed in the user interface so I tried to make a second data frame with another name but the same data and us it in the server. This did also not work. To make the app more efficient i made a data_preparation script to process the data used in the app. This solved the error probably the problem was that the data is generated in the shiny app. So, the columns could not be interpreted correctly. At the end of the project I spent quite some time cleaning my scripts and repository. This is something i should do more while. 
+
+<br><br>
 
 ## Conclusion
 
-The app allows you to search for attractions within a kilometer radius. This function can be useful, especially for people who are making a short stay in Switzerland and have limited mobility. An implementation of the Google Maps Platform APIs could improve the app considerably and suggest routes to reach a destination. In addition, further filters could be built in, for example filtering for summer or winter destinations or attractions. The app would therefore need various improvements to have any real benefit. Through this project, however, I was able to work with an API for the first time, expand my skills in the area of web scraping and program my first real R shiny app.
+
+The app allows you to search for attractions within a kilometer radius. This function can be useful, especially for people who are making a short stay in Switzerland and have limited mobility. An implementation of the Google Maps Platform APIs could improve the app considerably and suggest routes to reach a destination. In addition, further filters could be built in, for example filtering for summer or winter destinations or attractions. The app could therefore be improved in various ways to have a greater benefit. Through this project, however, I was able to work with an API for the first time, expand my skills in the area of web scraping and program my first real R shiny app.
 
 
 

@@ -16,7 +16,8 @@ gemeinde_loc <- as.data.frame(readRDS(here::here("data", "gemeinde_loc.rds")))
 
 # User_interface ------------------------------------------------------------------
 
-# Define UI for the app
+# Checks for trobleshoting the error i got.
+
 if (!exists("gemeinde_loc")) {
   stop("The 'gemeinde_loc' dataset is not loaded.")
 }
@@ -56,6 +57,15 @@ server <- function(input, output, session) {
     
     if (!is.null(selected_gemeinde) && length(selected_gemeinde) > 0) {
       updateSelectInput(session, "gemeinde", selected = selected_gemeinde)
+    }
+  })
+  
+  observe({
+    selected_gemeinde <- input$gemeinde
+    selected_postal_code <- gemeinde_loc$postal_code[gemeinde_loc$name == selected_gemeinde]
+    
+    if (!is.null(selected_postal_code) && length(selected_postal_code) > 0) {
+      updateNumericInput(session, "postal_code", value = selected_postal_code)
     }
   })
   
