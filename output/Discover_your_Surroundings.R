@@ -33,7 +33,7 @@ ui <- fluidPage(
     sidebarPanel(
       selectInput("dataset", "Select Dataset", choices = c("Attractions", "Destinations")),
       selectInput("gemeinde", "Select Municipality", choices = gemeinde_loc$name, multiple = FALSE),
-      selectInput("postal_code", "Select Postal Code", choices = unique(gemeinde_loc$postal_code)),
+      selectInput("postal_code", "Select BFS-Number", choices = unique(gemeinde_loc$postal_code)),
       numericInput("radius", "Select Radius (km)", value = 20, min = 1)
     ),
     mainPanel(
@@ -146,3 +146,4 @@ server <- function(input, output, session) {
 
 # Run the Shiny app
 shinyApp(ui, server)
+
