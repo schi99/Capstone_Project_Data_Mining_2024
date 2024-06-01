@@ -11,10 +11,10 @@ library(magrittr)
 
 # Load Data
 
-attractions <- readRDS("data/attraction_data.rds")
-offers <- readRDS("data/offers_data.rds")
-destinations <- readRDS("data/destination_data.rds")
-gemeinde_df <- readRDS("data/gemeinde.rds")
+attractions <- readRDS(here::here("raw_data", "attraction_data.rds"))
+offers <- readRDS(here::here("raw_data","offers_data.rds"))
+destinations <- readRDS(here::here("raw_data", "destination_data.rds"))
+gemeinde_df <- readRDS(here::here("raw_data", "gemeinde.rds"))
 
 
 # Attractions_df --------------------------------------------------

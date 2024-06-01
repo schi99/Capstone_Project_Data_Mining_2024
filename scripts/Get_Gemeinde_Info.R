@@ -5,6 +5,7 @@ library(rvest)
 library(tidyverse)
 library(janitor)
 
+
 my_email <- Sys.getenv("Mail")
 
 require(httr)
@@ -57,8 +58,8 @@ gemeinde_df <- gemeinden_l[[1]] %>%
 gemeinde_df <- gemeinde_df %>%
   select(offizieller_gemeindename, bfs_nr) %>%
   rename(name = offizieller_gemeindename,
-         postal_code = bfs_nr)
+         "postal_code" = bfs_nr)
   
 
-saveRDS(object = gemeinde_df, file = here::here("data/gemeinde.rds"))
+saveRDS(object = gemeinde_df, file = here::here("raw_data" , "gemeinde.rds"))
   

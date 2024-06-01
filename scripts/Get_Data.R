@@ -106,4 +106,4 @@ repeat {
   print(page)
 }
 
-saveRDS(object = all_data, file = here("data/destination_data.rds"))
+saveRDS(object = all_data, file = here::here("raw_data", "destination_data.rds"))

@@ -98,7 +98,7 @@ repeat {
 }
 
 
-saveRDS(object = all_data, file = here("data/offers_data.rds"))
+saveRDS(object = all_data, file = here::here("raw_data","offers_data.rds"))
 
 
 
