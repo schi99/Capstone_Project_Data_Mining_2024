@@ -14,6 +14,7 @@ library(dplyr)
 library(stringr)
 library(geosphere)
 library(magrittr)
+library(shinythemes)
 ```
 
 ## General Information
@@ -43,7 +44,7 @@ gemeinde_loc <- as.data.frame(readRDS(here::here("data", "gemeinde_loc.rds")))
 # User_interface -------------------------------------------------------------
 
 # Define UI for the app
-ui <- fluidPage(
+ui <- fluidPage(theme = shinytheme("sandstone"),
   titlePanel("Tourism Map of Switzerland"),
   sidebarLayout(
     sidebarPanel(

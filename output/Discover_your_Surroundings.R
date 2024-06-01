@@ -7,6 +7,7 @@ library(dplyr)
 library(stringr)
 library(geosphere)
 library(magrittr)
+library(shinythemes)
 
 
 destination_df <- as.data.frame(readRDS(here::here("data", "destination_df.rds")))
@@ -27,7 +28,7 @@ if (!"postal_code" %in% colnames(gemeinde_loc)) {
 }
 
 # Define UI for the app
-ui <- fluidPage(
+ui <- fluidPage(theme = shinytheme("sandstone"),
   titlePanel("Tourism Map of Switzerland"),
   sidebarLayout(
     sidebarPanel(
