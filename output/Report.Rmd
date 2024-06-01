@@ -1,0 +1,48 @@
+---
+title: "Report - Capstone Project: Data Mining for Political and Social Sciences using R"
+author: "Benjamin Schibli"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## General Information
+
+This project was realized as part of the seminar: Data Mining for Political and Social Sciences using R in the spring semester 2024. The data on which this project is based are from the following pages: <br> <br>
+Switzerland Tourism -www.myswitzerland.com, <br>
+SwitzerlandMobility - www.schweizmobil.ch, <br>
+Wikipedia - www.wikipedia.org. <br> <br>
+The artificial intelligences ChatGPT and Deepl were used during the project.  
+
+## Overview
+
+The aim of this capstone project is to create an R Shiny app that displays the attractions, destinations and offers available via the Switzerland tourism API on a map. A detailed map with many selection options can be found under the following link: https://www.myswitzerland.com/de-ch/map/
+This map is more aesthetic than the one created in this project. However, the app, which was created as part of this project, makes it possible to search for attractions in the surrounding area using the postcode or a municipality name (radius in kilometers).  Figure 1 shows the user interface of the Shiny app. Due to the data structure of the ‘Offers’, I decided not to include them in the map. Furthermore, only destinations with an abstract were included as destinations. This was because the other destinations often did not have a working URL. It was assumed that if a destination contained an abstract, the URL should lead to a working website. 
+
+```{r Figure 1}
+#Figure 1
+```
+
+
+## Process Steps
+
+As a first step, I registered with the Swiss Tourism API and created a preparatory script called Script Setup_API_Key.R. This script is used to store the API key and other information that should not be published on GitHub. <br><br>
+
+A function was written to access the API. One problem that arose was how to include the API key in the GET function. This was solved by repeatedly reading through the API documentation. To get all the data, a loop was written that executes the function for all pages. The API specifies the number of all available pages, so this number was used as the cancellation variable. In a first attempt the data was overwritten again and again instead of concatenate the function append was used, this solved the problem. <br><br>
+
+Unfortunately, I could not find a dataset that combines the municipality names and postal codes with the geolocation. On closer inspection of the destination data, however, I noticed that many of the destinations were municipality names. For this reason, the table of all municipality names was combined with the destination dataset, resulting in a loss of 629 municipalities. After a little data preparation, this number was reduced to 551 municipalities. This is still not great and there are surly better solutions (for example the use of the Google Maps Platform APIs) but for this project I decided that it must work. To get the data of the municipalities the table on the following page was used: https://de.wikipedia.org/wiki/Liste_Schweizer_Gemeinden. <br><br>
+
+The data downloaded from the API was nested in lists. To translate these into a data frame, the length of all requests and the length of the data points contained in there were analyzed and a loop was written based on these lengths. <br><br>
+
+In a final step, the shiny app was programmed with the data frames as data. Two menus have been added to the user interface, one that switches between destinations and attractions and one that allows you to select municipalities or postcodes. Furthermore, an input field has been added in which the user can enter the distance in kilometers to the desired municipality. One problem was that the field of the municipality adapts to the field of the postal code and vice versa. This was solved with a reactive function in the server part. Furthermore, the app works when the script is executed manually. However, if you want to run the app via Run, the app does not work. The problem seems to be with the municipality dataset or the dplyr:: filter function. I already had problems with the filter function in another project. There the name of the collum was not applied correctly. So, I tried to use a different rename function. This failed. I also tried to specify the filter function with dplyr:: but this did not work either. Another attempt was to omit the filter function completely and replace it with a base-R expression. This also did not work. So, the Problem must be with the gemeinde.df or how it is used in the user interface and the server. I thought that maybe the data frame gets changed in the user interface so I tried to make a second data frame with another name but the same data and us it in the server. This did also not work. As a result, the app is currently not running when executed via Run, but otherwise it works. <br><br>
+
+## Conclusion
+
+The app allows you to search for attractions within a kilometer radius. This function can be useful, especially for people who are making a short stay in Switzerland and have limited mobility. An implementation of the Google Maps Platform APIs could improve the app considerably and suggest routes to reach a destination. In addition, further filters could be built in, for example filtering for summer or winter destinations or attractions. The app would therefore need various improvements to have any real benefit. Through this project, however, I was able to work with an API for the first time, expand my skills in the area of web scraping and program my first real R shiny app.
+
+
+
+
